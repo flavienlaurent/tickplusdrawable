@@ -20,7 +20,7 @@ import static android.graphics.Paint.ANTI_ALIAS_FLAG;
 
 public class TickPlusDrawable extends Drawable {
 
-    private static final long ANIMATION_DURATION = 250;
+    private static final long ANIMATION_DURATION = 280;
     private static final Interpolator ANIMATION_INTERPOLATOR = new DecelerateInterpolator();
 
     private Paint mLinePaint;
