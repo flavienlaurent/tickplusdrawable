@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
+import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
@@ -26,17 +27,15 @@ public class TickPlusDrawable extends Drawable {
     private Paint mLinePaint;
     private Paint mBackgroundPaint;
 
-    private float[] mLinePoints = new float[8];
-    private FloatPoint[] mFloatPoints = new FloatPoint[4];
+    private float[] mPoints = new float[8];
     private final RectF mBounds = new RectF();
 
     private boolean mTickMode;
-    private FloatPointEvaluator mFloatPointEvaluator = new FloatPointEvaluator();
     private ArgbEvaluator mArgbEvaluator = new ArgbEvaluator();
 
     private float mRotation;
 
-    public int mStrokeWidth = 10;
+    private int mStrokeWidth = 10;
     private int mTickColor = Color.BLUE;
     private int mPlusColor = Color.WHITE;
 
@@ -49,14 +48,6 @@ public class TickPlusDrawable extends Drawable {
         mTickColor = tickColor;
         mPlusColor = plusColor;
         setupPaints();
-        initFloatPoints();
-    }
-
-    private void initFloatPoints() {
-        mFloatPoints[0] = new FloatPoint(0,0);
-        mFloatPoints[1] = new FloatPoint(0,0);
-        mFloatPoints[2] = new FloatPoint(0,0);
-        mFloatPoints[3] = new FloatPoint(0,0);
     }
 
     private void setupPaints() {
@@ -82,14 +73,34 @@ public class TickPlusDrawable extends Drawable {
         mBounds.top = bounds.top + padding;
         mBounds.bottom = bounds.bottom - padding;
 
-        mFloatPoints[0].x = mBounds.left;
-        mFloatPoints[0].y = mBounds.centerY();
-        mFloatPoints[1].x = mBounds.right;
-        mFloatPoints[1].y = mBounds.centerY();
-        mFloatPoints[2].x = mBounds.centerX();
-        mFloatPoints[2].y = mBounds.top;
-        mFloatPoints[3].x = mBounds.centerX();
-        mFloatPoints[3].y = mBounds.bottom;
+        setupPlusMode();
+    }
+
+    private void setupPlusMode() {
+        mPoints[0] = mBounds.left;
+        mPoints[1] = mBounds.centerY();
+        mPoints[2] = mBounds.right;
+        mPoints[3] = mBounds.centerY();
+        mPoints[4] = mBounds.centerX();
+        mPoints[5] = mBounds.top;
+        mPoints[6] = mBounds.centerX();
+        mPoints[7] = mBounds.bottom;
+    }
+
+    private float x(int pointIndex) {
+        return mPoints[xPosition(pointIndex)];
+    }
+
+    private float y(int pointIndex) {
+        return mPoints[yPosition(pointIndex)];
+    }
+
+    private int xPosition(int pointIndex) {
+        return pointIndex*2;
+    }
+
+    private int yPosition(int pointIndex) {
+        return xPosition(pointIndex) + 1;
     }
 
     @Override
@@ -97,13 +108,13 @@ public class TickPlusDrawable extends Drawable {
         canvas.drawCircle(mBounds.centerX(), mBounds.centerY(), mBounds.centerX(), mBackgroundPaint);
 
         canvas.save();
-        canvas.rotate(180* mRotation, (mFloatPoints[0].x+ mFloatPoints[1].x)/2, (mFloatPoints[0].y+ mFloatPoints[1].y)/2);
-        canvas.drawLine(mFloatPoints[0].x, mFloatPoints[0].y, mFloatPoints[1].x, mFloatPoints[1].y, mLinePaint);
+        canvas.rotate(180 * mRotation, (x(0) + x(1))/2, (y(0) + y(1))/2);
+        canvas.drawLine(x(0), y(0), x(1), y(1), mLinePaint);
         canvas.restore();
 
         canvas.save();
-        canvas.rotate(180 * mRotation, (mFloatPoints[2].x + mFloatPoints[3].x) / 2, (mFloatPoints[2].y + mFloatPoints[3].y) / 2);
-        canvas.drawLine(mFloatPoints[2].x, mFloatPoints[2].y, mFloatPoints[3].x, mFloatPoints[3].y, mLinePaint);
+        canvas.rotate(180 * mRotation, (x(2) + x(3)) / 2, (y(2) + y(3)) / 2);
+        canvas.drawLine(x(2), y(2), x(3), y(3), mLinePaint);
         canvas.restore();
     }
 
@@ -119,10 +130,18 @@ public class TickPlusDrawable extends Drawable {
     public void animateTick() {
         AnimatorSet set = new AnimatorSet();
         set.playTogether(
-                ObjectAnimator.ofObject(this, mPropertyPA, mFloatPointEvaluator, new FloatPoint(mBounds.left, mBounds.centerY())),
-                ObjectAnimator.ofObject(this, mPropertyPB, mFloatPointEvaluator, new FloatPoint(mBounds.centerX(), mBounds.bottom)),
-                ObjectAnimator.ofObject(this, mPropertyPC, mFloatPointEvaluator, new FloatPoint(mBounds.right, mBounds.centerX()/2)),
-                ObjectAnimator.ofObject(this, mPropertyPD, mFloatPointEvaluator, new FloatPoint(mBounds.centerX(), mBounds.bottom)),
+                ObjectAnimator.ofFloat(this, mPropertyPointAX, mBounds.left),
+                ObjectAnimator.ofFloat(this, mPropertyPointAY, mBounds.centerY()),
+
+                ObjectAnimator.ofFloat(this, mPropertyPointBX, mBounds.centerX()),
+                ObjectAnimator.ofFloat(this, mPropertyPointBY, mBounds.bottom),
+
+                ObjectAnimator.ofFloat(this, mPropertyPointCX, mBounds.right),
+                ObjectAnimator.ofFloat(this, mPropertyPointCY, mBounds.centerX()/2),
+
+                ObjectAnimator.ofFloat(this, mPropertyPointDX, mBounds.centerX()),
+                ObjectAnimator.ofFloat(this, mPropertyPointDY, mBounds.bottom),
+
                 ObjectAnimator.ofFloat(this, mRotationProperty, 0f, 1f),
                 ObjectAnimator.ofObject(this, mLineColorProperty, mArgbEvaluator, mTickColor),
                 ObjectAnimator.ofObject(this, mBackgroundColorProperty, mArgbEvaluator, Color.WHITE)
@@ -135,10 +154,18 @@ public class TickPlusDrawable extends Drawable {
     public void animatePlus() {
         AnimatorSet set = new AnimatorSet();
         set.playTogether(
-                ObjectAnimator.ofObject(this, mPropertyPA, mFloatPointEvaluator, new FloatPoint(mBounds.left, mBounds.centerY())),
-                ObjectAnimator.ofObject(this, mPropertyPB, mFloatPointEvaluator, new FloatPoint(mBounds.right, mBounds.centerY())),
-                ObjectAnimator.ofObject(this, mPropertyPC, mFloatPointEvaluator, new FloatPoint(mBounds.centerX(), mBounds.top)),
-                ObjectAnimator.ofObject(this, mPropertyPD, mFloatPointEvaluator, new FloatPoint(mBounds.centerX(), mBounds.bottom)),
+                ObjectAnimator.ofFloat(this, mPropertyPointAX, mBounds.left),
+                ObjectAnimator.ofFloat(this, mPropertyPointAY, mBounds.centerY()),
+
+                ObjectAnimator.ofFloat(this, mPropertyPointBX, mBounds.right),
+                ObjectAnimator.ofFloat(this, mPropertyPointBY, mBounds.centerY()),
+
+                ObjectAnimator.ofFloat(this, mPropertyPointCX, mBounds.centerX()),
+                ObjectAnimator.ofFloat(this, mPropertyPointCY, mBounds.top),
+
+                ObjectAnimator.ofFloat(this, mPropertyPointDX, mBounds.centerX()),
+                ObjectAnimator.ofFloat(this, mPropertyPointDY, mBounds.bottom),
+
                 ObjectAnimator.ofFloat(this, mRotationProperty, 0f, 1f),
                 ObjectAnimator.ofObject(this, mLineColorProperty, mArgbEvaluator, Color.WHITE),
                 ObjectAnimator.ofObject(this, mBackgroundColorProperty, mArgbEvaluator, mTickColor)
@@ -159,18 +186,6 @@ public class TickPlusDrawable extends Drawable {
         return PixelFormat.OPAQUE;
     }
 
-    private void setPointValue(int indexPoint, float value) {
-        mLinePoints[indexPoint] = value;
-        invalidateSelf();
-    }
-
-    private void setPointValue2(int indexPoint, FloatPoint value) {
-        mFloatPoints[indexPoint] = value;
-        invalidateSelf();
-    }
-
-    /*Color*/
-
     private Property<TickPlusDrawable, Integer> mBackgroundColorProperty = new Property<TickPlusDrawable, Integer>(Integer.class, "bg_color") {
         @Override
         public Integer get(TickPlusDrawable object) {
@@ -180,7 +195,6 @@ public class TickPlusDrawable extends Drawable {
         @Override
         public void set(TickPlusDrawable object, Integer value) {
             object.mBackgroundPaint.setColor(value);
-            invalidateSelf();
         }
     };
 
@@ -193,11 +207,8 @@ public class TickPlusDrawable extends Drawable {
         @Override
         public void set(TickPlusDrawable object, Integer value) {
             object.mLinePaint.setColor(value);
-            invalidateSelf();
         }
     };
-
-    /*Rotation*/
 
     private Property<TickPlusDrawable, Float> mRotationProperty = new Property<TickPlusDrawable, Float>(Float.class, "rotation") {
         @Override
@@ -208,34 +219,61 @@ public class TickPlusDrawable extends Drawable {
         @Override
         public void set(TickPlusDrawable object, Float value) {
             object.mRotation = value;
-            invalidateSelf();
         }
     };
 
-    /*FloatPoints*/
+    private PointProperty mPropertyPointAX = new XPointProperty(0);
+    private PointProperty mPropertyPointAY = new YPointProperty(0);
+    private PointProperty mPropertyPointBX = new XPointProperty(1);
+    private PointProperty mPropertyPointBY = new YPointProperty(1);
+    private PointProperty mPropertyPointCX = new XPointProperty(2);
+    private PointProperty mPropertyPointCY = new YPointProperty(2);
+    private PointProperty mPropertyPointDX = new XPointProperty(3);
+    private PointProperty mPropertyPointDY = new YPointProperty(3);
 
-    private PointProperty2 mPropertyPA = new PointProperty2(0);
-    private PointProperty2 mPropertyPB = new PointProperty2(1);
-    private PointProperty2 mPropertyPC = new PointProperty2(2);
-    private PointProperty2 mPropertyPD = new PointProperty2(3);
+    private abstract class PointProperty extends Property<TickPlusDrawable, Float> {
 
-    private class PointProperty2 extends Property<TickPlusDrawable, FloatPoint> {
+        protected int mPointIndex;
 
-        private int mIndexPoint;
+        private PointProperty(int pointIndex) {
+            super(Float.class, "point_" + pointIndex);
+            mPointIndex = pointIndex;
+        }
+    }
 
-        private PointProperty2(int indexPoint) {
-            super(FloatPoint.class, "point_" + indexPoint);
-            mIndexPoint = indexPoint;
+    private class XPointProperty extends PointProperty {
+
+        private XPointProperty(int pointIndex) {
+            super(pointIndex);
         }
 
         @Override
-        public FloatPoint get(TickPlusDrawable object) {
-            return object.mFloatPoints[mIndexPoint];
+        public Float get(TickPlusDrawable object) {
+            return object.x(mPointIndex);
         }
 
         @Override
-        public void set(TickPlusDrawable object, FloatPoint value) {
-            setPointValue2(mIndexPoint, value);
+        public void set(TickPlusDrawable object, Float value) {
+            object.mPoints[object.xPosition(mPointIndex)] = value;
+            invalidateSelf();
+        }
+    }
+
+    private class YPointProperty extends PointProperty {
+
+        private YPointProperty(int pointIndex) {
+            super(pointIndex);
+        }
+
+        @Override
+        public Float get(TickPlusDrawable object) {
+            return object.y(mPointIndex);
+        }
+
+        @Override
+        public void set(TickPlusDrawable object, Float value) {
+            object.mPoints[object.yPosition(mPointIndex)] = value;
+            invalidateSelf();
         }
     }
 }
