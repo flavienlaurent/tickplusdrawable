@@ -2,6 +2,13 @@
 I'm not a Gif maker, I'm a developer  
 ==================
 
+Recently, I discovered the cool animation which transforms a tick into a plus in the I/O 2014 app.
+I looked for code that animate this button and I came accross this: a frame by frame animation aka GIF!
+
+I  through it must be a *simple* way to do it programmatically but it's not easy to get the same effect. 
+
+Finally, I found a simple way (playing with canvas rotation + line translations) to mimick the animation.
+
 ![Animated gif][1]
 
 License
