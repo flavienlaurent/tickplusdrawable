@@ -183,7 +183,7 @@ public class TickPlusDrawable extends Drawable {
 
     @Override
     public int getOpacity() {
-        return PixelFormat.OPAQUE;
+        return PixelFormat.TRANSLUCENT;
     }
 
     private Property<TickPlusDrawable, Integer> mBackgroundColorProperty = new Property<TickPlusDrawable, Integer>(Integer.class, "bg_color") {
